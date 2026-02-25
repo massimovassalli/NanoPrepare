@@ -44,17 +44,20 @@ class opener(skeleton.prepare_opener):
             Z,Zattr = find_dataset_by_name(subgroup, "Position Z")
             block_sizes = np.array(find_block_size_dataset(subgroup), dtype=int)
             
-            coeZ = (Zattr['signal_calibration_max']-Zattr['signal_calibration_min'])/(Zattr['signal_minmax'][1]-Zattr['signal_minmax'][0])
+            coeZ = (Zattr['signal_calibration_min']-Zattr['signal_calibration_max'])/(Zattr['signal_minmax'][1]-Zattr['signal_minmax'][0])
             coeDV = (Dattr['signal_calibration_max']-Dattr['signal_calibration_min'])/(Dattr['signal_minmax'][1]-Dattr['signal_minmax'][0])
             
-            istart = np.sum(block_sizes[:number-1])
-            iend = istart+block_sizes[number-1]
+            if not number:
+                number = 1
+            index = number - 1
+            istart = np.sum(block_sizes[:index])
+            iend = istart+block_sizes[index]
             
             k = gen_att['spm_probe_calibration_spring_constant']
             self.curve.parameters['k'] = k
             invols = gen_att['spm_probe_calibration_deflection_sensitivity'] 
-            self.curve.parameters['x'] = xdata[number]
-            self.curve.parameters['y'] = ydata[number]            
+            self.curve.parameters['x'] = xdata[index]
+            self.curve.parameters['y'] = ydata[index]            
             coeD = coeDV*invols
         
         data = np.transpose(np.vstack([dset[istart:iend] for dset in [T,Z*coeZ,D*coeD]]))

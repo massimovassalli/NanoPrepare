@@ -20,7 +20,6 @@ class engine(object):
         self.ui.openfile.clicked.connect(self.open_files)
         self.ui.openfolder.clicked.connect(self.open_folder)
         self.ui.toggle_button.clicked.connect(self.toggle_button_clicked)
-        self.ui.saveas.clicked.connect(self.saveas_button_clicked)
         #the model contains the tree of curve objects and is used for the treeview
         self.model = MVexperiment()
         self.ui.filelist.setModel(self.model)
@@ -45,21 +44,17 @@ class engine(object):
             self.ui.toggle_button.setStyleSheet('color: red;')
             self.ui.timeview.setEnabled(False)
             self.ui.tipselect.setEnabled(True)
+            self.ui.openfile.setText("Open file")
+            self.ui.openfolder.setVisible(False)
         else:
             self.ui.toggle_button.setText("Optics11")
             self.model.setProxy('Optics11')
             self.ui.toggle_button.setStyleSheet('color: green;')
             self.ui.timeview.setEnabled(True)
             self.ui.tipselect.setEnabled(False)
-    def saveas_button_clicked(self):
-        if self.ui.saveas.isChecked():
-            self.ui.saveas.setText("HDF5")
-            self.model.setProxy('HDF5')
-            self.ui.saveas.setStyleSheet('color: red;')
-        else:
-            self.ui.saveas.setText("JSON")
-            self.model.setProxy('JSON')
-            self.ui.saveas.setStyleSheet('color: green;')
+            self.ui.openfile.setText("Open files")
+            self.ui.openfolder.setVisible(True)
+    
 
 ## 
 # These two functions are to open files
@@ -130,12 +125,8 @@ class engine(object):
 ## Saving the haystack to disk ##    
 
     def saveDataset(self):
-        if self.ui.saveas.text()=='JSON':
-            extension = "JSON Files (*.json)"
-            from openers.saveJson import saveJSON as saver
-        else:
-            extension = "Identation map Files (*.hdf5)"
-            from openers.saveHDF5 import saveHDF5 as saver
+        extension = "Indentation map Files (*.hdf5)"
+        from openers.saveHDF5 import saveHDF5 as saver
             
         fname = QFileDialog.getSaveFileName(self.ui, 'Save the experiment', self.ui.wdir.text(), extension)
         if fname == '' or fname is None or fname[0] == '':

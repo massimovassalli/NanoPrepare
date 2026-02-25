@@ -44,14 +44,9 @@ class UI(QMainWindow):
         self.tipselect = QPushButton('Set Tip')
         self.tipselect.setEnabled(False)
         self.save = QPushButton('Save')
-        self.saveas = QPushButton("HDF5")
-        self.saveas.setStyleSheet('color: red;')
-        self.saveas.setCheckable(True)
-        self.saveas.setChecked(True)
         group1_layout.addWidget(self.timeview)
         group1_layout.addWidget(self.tipselect)
         group1_layout.addWidget(self.save)
-        group1_layout.addWidget(self.saveas)
         layout.addLayout(group1_layout)
 
         # Group 2: Horizontal Slider and two PyQtGraph PlotWidgets

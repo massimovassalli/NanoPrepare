@@ -55,9 +55,8 @@ def getNodes(curve,mode='safe',value=30*1e-9):
 
 class opener(skeleton.prepare_opener):
     def check(self):
-        f = open(self.filename,encoding=ENCODING)
-        riga = f.readline()
-        f.close()
+        with open(self.filename, encoding=ENCODING) as f:
+            riga = f.readline()
         return riga.startswith('Date')
 
     def open(self,number=False):
@@ -84,63 +83,61 @@ class opener(skeleton.prepare_opener):
         return self.curve
     
     def getProtocols(self,mode='all'):
-        f = open(self.filename,encoding=ENCODING)
-        if mode=='all':
-            protocols=[]
-            next = False
-            for riga in f:
-                if riga.startswith('Profile') or riga.startswith('Piezo Indentation'):
-                    next = True
-                elif next is True:
-                    if riga.startswith('D'):
-                        elements = riga.strip().split('\t')
-                        protocols.append([float(elements[1]),float(elements[3])])
-                    else:
-                        break            
-            self.curve.protocols = protocols
-        elif mode=='poking':
-            next = False
-            for riga in f:
-                if riga.startswith('Profile') or riga.startswith('Piezo Indentation'):                    
-                    next = True
-                elif next is True:
-                    if riga.startswith('Max'):                        
-                        elements = riga.strip().split('\t')
-                        self.curve.parameters['max_load']=float(elements[1])*1e-6
-                    elif riga.startswith('Piezo'):                        
-                        elements = riga.strip().split('\t')
-                        self.curve.parameters['piezo_speed']=float(elements[1])*1e-6
-                    else:
-                        break            
-        f.close()
+        with open(self.filename, encoding=ENCODING) as f:
+            if mode=='all':
+                protocols=[]
+                next = False
+                for riga in f:
+                    if riga.startswith('Profile') or riga.startswith('Piezo Indentation'):
+                        next = True
+                    elif next is True:
+                        if riga.startswith('D'):
+                            elements = riga.strip().split('\t')
+                            protocols.append([float(elements[1]),float(elements[3])])
+                        else:
+                            break            
+                self.curve.protocols = protocols
+            elif mode=='poking':
+                next = False
+                for riga in f:
+                    if riga.startswith('Profile') or riga.startswith('Piezo Indentation'):                    
+                        next = True
+                    elif next is True:
+                        if riga.startswith('Max'):                        
+                            elements = riga.strip().split('\t')
+                            self.curve.parameters['max_load']=float(elements[1])*1e-6
+                        elif riga.startswith('Piezo'):                        
+                            elements = riga.strip().split('\t')
+                            self.curve.parameters['piezo_speed']=float(elements[1])*1e-6
+                        else:
+                            break            
         
     def getData(self):
-        f = open(self.filename,encoding=ENCODING)
-        for riga in f:
-            if riga.startswith('Time (s)'):
-                self.curve.channels = riga.strip().split('\t')
-                #Time (s)	Load (uN)	Indentation (nm)	Cantilever (nm)	Piezo (nm)	Auxiliary
-                self.multipliers = np.ones(len(self.curve.channels))
-                for i in range(len(self.curve.channels)):
-                    if self.curve.channels[i].startswith('Time'):
-                        self.curve.idTime = i
-                    elif self.curve.channels[i].startswith('Load'):
-                        self.curve.idForce = i
-                    elif self.curve.channels[i].startswith('Piezo'):
-                        self.curve.idZ = i
-                    if 'nm' in self.curve.channels[i]:
-                        self.multipliers[i]=1e-9
-                    elif 'uN' in self.curve.channels[i] or 'µN' in self.curve.channels[i]:
-                        self.multipliers[i]=1e-6
-                break
-        data = []
-        for riga in f:
-            elements = riga.strip().split('\t')
-            if len(elements) == len(self.curve.channels):
-                values = [float(x) for x in elements]
-                data.append(values)
+        with open(self.filename, encoding=ENCODING) as f:
+            for riga in f:
+                if riga.startswith('Time (s)'):
+                    self.curve.channels = riga.strip().split('\t')
+                    #Time (s)	Load (uN)	Indentation (nm)	Cantilever (nm)	Piezo (nm)	Auxiliary
+                    self.multipliers = np.ones(len(self.curve.channels))
+                    for i in range(len(self.curve.channels)):
+                        if self.curve.channels[i].startswith('Time'):
+                            self.curve.idTime = i
+                        elif self.curve.channels[i].startswith('Load'):
+                            self.curve.idForce = i
+                        elif self.curve.channels[i].startswith('Piezo'):
+                            self.curve.idZ = i
+                        if 'nm' in self.curve.channels[i]:
+                            self.multipliers[i]=1e-9
+                        elif 'uN' in self.curve.channels[i] or 'µN' in self.curve.channels[i]:
+                            self.multipliers[i]=1e-6
+                    break
+            data = []
+            for riga in f:
+                elements = riga.strip().split('\t')
+                if len(elements) == len(self.curve.channels):
+                    values = [float(x) for x in elements]
+                    data.append(values)
         self.curve.data = np.array(data)*self.multipliers
-        f.close()
 
     def createSegments(self,mode='safe'):
         nodi = getNodes(self.curve,mode)
@@ -153,35 +150,34 @@ class opener(skeleton.prepare_opener):
         #specific parameters
         self.curve.parameters['SMDuration']=0.0
 
-        f = open(self.filename,encoding=ENCODING)
-        for riga in f:
-            if riga.startswith('Time (s)'):
-                break
-            if riga.startswith('Profile') or riga.startswith('Piezo Indentation'):
-                break
-            if riga.startswith('X-position'):
-                coeff = 1.0
-                if 'um' in riga or 'µm' in riga:
-                    coeff = 1e-6
-                self.curve.parameters['x']=coeff*float(riga.strip().split('\t')[1])
-            elif riga.startswith('Y-position'):
-                coeff = 1.0
-                if 'um' in riga or 'µm' in riga:
-                    coeff = 1e-6
-                self.curve.parameters['y']=coeff*float(riga.strip().split('\t')[1])
-            elif riga.startswith('k (N/m)'):
-                self.curve.parameters['k']=float(riga.strip().split('\t')[1])
-            elif riga.startswith('Tip radius'):
-                coeff = 1.0
-                if 'um' in riga or 'µm' in riga:
-                    coeff = 1e-6
-                self.curve.tip['value']=coeff*float(riga.strip().split('\t')[1])
-            elif riga.startswith('Control mode'):
-                self.curve.parameters['control']=riga.strip().split(':')[1].strip()
-            elif riga.startswith('Measurement'):
-                self.curve.parameters['measurement']=riga.strip().split(':')[1].strip()
-            elif riga.startswith('Software'):
-                self.curve.parameters['version']=riga.strip().split(':')[1].strip()
-            elif riga.startswith('SMDuration'):
-                self.curve.parameters['SMDuration']=float(riga.strip().split(' ')[-1])
-        f.close()
+        with open(self.filename, encoding=ENCODING) as f:
+            for riga in f:
+                if riga.startswith('Time (s)'):
+                    break
+                if riga.startswith('Profile') or riga.startswith('Piezo Indentation'):
+                    break
+                if riga.startswith('X-position'):
+                    coeff = 1.0
+                    if 'um' in riga or 'µm' in riga:
+                        coeff = 1e-6
+                    self.curve.parameters['x']=coeff*float(riga.strip().split('\t')[1])
+                elif riga.startswith('Y-position'):
+                    coeff = 1.0
+                    if 'um' in riga or 'µm' in riga:
+                        coeff = 1e-6
+                    self.curve.parameters['y']=coeff*float(riga.strip().split('\t')[1])
+                elif riga.startswith('k (N/m)'):
+                    self.curve.parameters['k']=float(riga.strip().split('\t')[1])
+                elif riga.startswith('Tip radius'):
+                    coeff = 1.0
+                    if 'um' in riga or 'µm' in riga:
+                        coeff = 1e-6
+                    self.curve.tip['value']=coeff*float(riga.strip().split('\t')[1])
+                elif riga.startswith('Control mode'):
+                    self.curve.parameters['control']=riga.strip().split(':')[1].strip()
+                elif riga.startswith('Measurement'):
+                    self.curve.parameters['measurement']=riga.strip().split(':')[1].strip()
+                elif riga.startswith('Software'):
+                    self.curve.parameters['version']=riga.strip().split(':')[1].strip()
+                elif riga.startswith('SMDuration'):
+                    self.curve.parameters['SMDuration']=float(riga.strip().split(' ')[-1])

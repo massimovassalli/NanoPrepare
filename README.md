@@ -14,10 +14,13 @@ A step-by-step guide and video tutorials on how to use the previous software ver
 We are updating the documentation to match the new version.
 
 ## Supported file types 
-Right now, the software opens Optics 11 .txt files (both old and new versions are supported). We are working to add support for Nanosurf files.
+Right now, the software opens Optics11 .txt files (both old and new versions are supported). We are working to add support for Nanosurf files.
 
 ## Installation 
-No installer is currently provided. In order use the GUI, a Python 3 environment with the following packages is required: PyQt5, NumPy, SciPy, PyQtGraph, matplotlib, afmformats.
+No installer is currently provided. In order use the GUI, a Python 3 environment with the following packages is required: PyQt5, NumPy, SciPy, PyQtGraph, matplotlib.
+
+## Output format
+The current packing format is HDF5 (compatible with the softmech analysis pipeline). JSON export has been removed in this consolidation release.
 
 ## Running the GUI 
 In order to access the GUI, run the prepare file from the command line:

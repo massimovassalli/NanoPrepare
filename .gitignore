@@ -9,6 +9,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 NHF/
+testNHF/
 build/
 develop-eggs/
 dist/
