@@ -1,4 +1,9 @@
-import afmformats
+try:
+    import afmformats
+    AFMFORMATS_AVAILABLE = True
+except ImportError:
+    AFMFORMATS_AVAILABLE = False
+
 import openers._skeleton as skeleton
 import numpy as np
 
@@ -8,6 +13,8 @@ EXT = '*'
 class opener(skeleton.prepare_opener):
 
     def open(self):
+        if not AFMFORMATS_AVAILABLE:
+            raise ImportError('afmformats is not installed. Install it with: pip install afmformats')
         dslist = afmformats.load_data(self.filename)
         self.curve.channels = dslist[0].columns
         print(dslist[0]["force"])
