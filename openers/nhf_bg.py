@@ -15,6 +15,30 @@ def find_block_size_dataset(segment):
         if 'dataset_block_size_id' in dataset.attrs:
             return dataset
 
+def find_segment_groups(group):
+    segments = []
+    for key in group:
+        item = group[key]
+        if isinstance(item, h5py.Group) and 'segment_index' in item.attrs:
+            segments.append(item)
+    segments.sort(key=lambda item: item.attrs['segment_index'])
+    return segments
+
+def read_curve_segment(subgroup, index, invols):
+    T, _ = find_dataset_by_name(subgroup, 'Time')
+    D, Dattr = find_dataset_by_name(subgroup, 'Deflection')
+    Z, Zattr = find_dataset_by_name(subgroup, 'Position Z')
+    block_sizes = np.array(find_block_size_dataset(subgroup), dtype=int)
+
+    istart = np.sum(block_sizes[:index])
+    iend = istart + block_sizes[index]
+
+    coeZ = (Zattr['signal_calibration_max'] - Zattr['signal_calibration_min']) / (Zattr['signal_minmax'][1] - Zattr['signal_minmax'][0])
+    coeDV = (Dattr['signal_calibration_max'] - Dattr['signal_calibration_min']) / (Dattr['signal_minmax'][1] - Dattr['signal_minmax'][0])
+    coeD = coeDV * invols
+
+    return np.transpose(np.vstack([dset[istart:iend] for dset in [T, Z * coeZ, D * coeD]]))
+
 def open(filename,limit = False):
     data=[]
     innerattr = []
@@ -28,23 +52,12 @@ def open(filename,limit = False):
         general_fw = f['/group_0000/']
         gen_att = {key: general_fw.attrs[key] for key in general_fw.attrs}
         xdata = f['/group_0000/dataset_0000/'][:]
-        ydata = f['/group_0000/dataset_0001/'][:]            
-        
-        subgroup = f['/group_0000/subgroup_0000/']
-        attributes = {key: subgroup.attrs[key] for key in subgroup.attrs}
-        
-        T,Tattr = find_dataset_by_name(subgroup, "Time")
-        D,Dattr = find_dataset_by_name(subgroup, "Deflection")
-        Z,Zattr = find_dataset_by_name(subgroup, "Position Z")
-        block_sizes = np.array(find_block_size_dataset(subgroup), dtype=int)
-        
-        coeZ = (Zattr['signal_calibration_min']-Zattr['signal_calibration_max'])/(Zattr['signal_minmax'][1]-Zattr['signal_minmax'][0])
-        coeDV = (Dattr['signal_calibration_max']-Dattr['signal_calibration_min'])/(Dattr['signal_minmax'][1]-Dattr['signal_minmax'][0])
+        ydata = f['/group_0000/dataset_0001/'][:]
+        segment_groups = find_segment_groups(general_fw)
         
         k = gen_att['spm_probe_calibration_spring_constant']
-        invols = gen_att['spm_probe_calibration_deflection_sensitivity'] 
-        coeD = coeDV*invols
-        channels = ['Time','Z Position [m]','Force [N]']
+        invols = gen_att['spm_probe_calibration_deflection_sensitivity']
+        channels = ['Time','Z Position [m]','Deflection [m]']
         curves = []
         coordinates = []
         
@@ -56,10 +69,9 @@ def open(filename,limit = False):
         for number in range(ncurves):
             if progress_dialog.wasCanceled():
                 break
-            istart = np.sum(block_sizes[:number])
-            iend = istart+block_sizes[number]
             coordinates.append((xdata[number],ydata[number]))
-            datai = np.transpose(np.vstack([dset[istart:iend] for dset in [T,Z*coeZ,D*coeD*k]]))
+            segment_data = [read_curve_segment(subgroup, number, invols) for subgroup in segment_groups]
+            datai = np.vstack(segment_data)
             curves.append(datai)
             # Update the progress dialog
             progress_dialog.setValue(number + 1)

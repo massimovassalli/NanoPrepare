@@ -17,6 +17,31 @@ def find_block_size_dataset(segment):
         if 'dataset_block_size_id' in dataset.attrs:
             return dataset
 
+def find_segment_groups(group):
+    segments = []
+    for key in group:
+        item = group[key]
+        if isinstance(item, h5py.Group) and 'segment_index' in item.attrs:
+            segments.append(item)
+    segments.sort(key=lambda item: item.attrs['segment_index'])
+    return segments
+
+def read_curve_segment(subgroup, index):
+    T, _ = find_dataset_by_name(subgroup, 'Time')
+    D, Dattr = find_dataset_by_name(subgroup, 'Deflection')
+    Z, Zattr = find_dataset_by_name(subgroup, 'Position Z')
+    block_sizes = np.array(find_block_size_dataset(subgroup), dtype=int)
+
+    istart = np.sum(block_sizes[:index])
+    iend = istart + block_sizes[index]
+
+    coeZ = (Zattr['signal_calibration_max'] - Zattr['signal_calibration_min']) / (Zattr['signal_minmax'][1] - Zattr['signal_minmax'][0])
+    coeDV = (Dattr['signal_calibration_max'] - Dattr['signal_calibration_min']) / (Dattr['signal_minmax'][1] - Dattr['signal_minmax'][0])
+    invols = subgroup.parent.attrs['spm_probe_calibration_deflection_sensitivity']
+    coeD = coeDV * invols
+
+    return np.transpose(np.vstack([dset[istart:iend] for dset in [T, Z * coeZ, D * coeD]]))
+
 class opener(skeleton.prepare_opener):
     def isMultiple(self):
         data=[]
@@ -34,43 +59,30 @@ class opener(skeleton.prepare_opener):
             general_fw = f['/group_0000/']
             gen_att = {key: general_fw.attrs[key] for key in general_fw.attrs}
             xdata = f['/group_0000/dataset_0000/'][:]
-            ydata = f['/group_0000/dataset_0001/'][:]            
-            
-            subgroup = f['/group_0000/subgroup_0000/']
-            attributes = {key: subgroup.attrs[key] for key in subgroup.attrs}
-            
-            T,Tattr = find_dataset_by_name(subgroup, "Time")
-            D,Dattr = find_dataset_by_name(subgroup, "Deflection")
-            Z,Zattr = find_dataset_by_name(subgroup, "Position Z")
-            block_sizes = np.array(find_block_size_dataset(subgroup), dtype=int)
-            
-            coeZ = (Zattr['signal_calibration_min']-Zattr['signal_calibration_max'])/(Zattr['signal_minmax'][1]-Zattr['signal_minmax'][0])
-            coeDV = (Dattr['signal_calibration_max']-Dattr['signal_calibration_min'])/(Dattr['signal_minmax'][1]-Dattr['signal_minmax'][0])
+            ydata = f['/group_0000/dataset_0001/'][:]
+            segment_groups = find_segment_groups(general_fw)
             
             if not number:
                 number = 1
             index = number - 1
-            istart = np.sum(block_sizes[:index])
-            iend = istart+block_sizes[index]
             
             k = gen_att['spm_probe_calibration_spring_constant']
             self.curve.parameters['k'] = k
-            invols = gen_att['spm_probe_calibration_deflection_sensitivity'] 
             self.curve.parameters['x'] = xdata[index]
-            self.curve.parameters['y'] = ydata[index]            
-            coeD = coeDV*invols
-        
-        data = np.transpose(np.vstack([dset[istart:iend] for dset in [T,Z*coeZ,D*coeD*k]]))
-        
-        self.curve.channels = ['Time','Z Position [m]','Force [N]']
+            self.curve.parameters['y'] = ydata[index]
+
+            segments = [read_curve_segment(subgroup, index) for subgroup in segment_groups]
+
+        self.curve.channels = ['Time','Z Position [m]','Deflection [m]']
         self.curve.idTime = 0
         self.curve.idForce = 2
         self.curve.idZ = 1
         self.curve.isDeflection = True
         self.curve.tip['value']=1e-5
-        self.curve.data=data
-        
-        self.curve.attach(self.curve.data)
+
+        self.curve.data = np.vstack(segments)
+        for data in segments:
+            self.curve.attach(data)
 
         
         return self.curve
