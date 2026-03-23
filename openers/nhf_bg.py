@@ -113,7 +113,7 @@ def save(filename,curves,coordinates,k,radius,limit=False):
             name = names[icv]
             dt = curve[:,icv]
             if icv == 2:
-                dt *= k
+                dt = dt * k
             dataseg.create_dataset(name,data=dt)         
         progress_dialog.setValue(i)
     progress_dialog.setValue(ncurves)       

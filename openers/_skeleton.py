@@ -24,14 +24,14 @@ class segment(object):
 
     def getCurve(self,mode='FZ'):
         if mode == 'FZ':
-            force = self.data[:,self.idForce]
+            force = self.data[:,self.idForce].copy()
             if self.isDeflection:
-                force*=self.curve.parameters['k']
+                force = force * self.curve.parameters['k']
             return self.data[:,self.idZ],force
         elif mode == 'FT':
-            force = self.data[:,self.idForce]
+            force = self.data[:,self.idForce].copy()
             if self.isDeflection:
-                force*=self.curve.parameters['k']
+                force = force * self.curve.parameters['k']
             return self.data[:,self.idTime],force
 
 class curve(object):

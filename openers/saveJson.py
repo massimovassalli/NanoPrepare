@@ -29,14 +29,16 @@ class saveJSON(object):
         
     def addCurve(self, curve):
         geometry = curve.tip['geometry']
-        radius = curve.tip['value']
+        tip_value = curve.tip['value']
         spring = curve.parameters['k']
 
         cv = emptyCurve()
-        cv['filename']=self.filename.name                
-        cv['tip']['radius']=radius
-        cv['tip']['angle']=radius
-        cv['tip']['geometry']=geometry
+        cv['filename'] = self.filename.name
+        if geometry in ('sphere', 'cylinder'):
+            cv['tip']['radius'] = tip_value
+        else:
+            cv['tip']['angle'] = tip_value
+        cv['tip']['geometry'] = geometry
         cv['spring_constant']=spring
         cv['position']=(curve.parameters['x'],curve.parameters['y'])
         z,f=curve.segments[self.selectedsegment].getCurve()

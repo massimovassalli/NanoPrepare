@@ -229,23 +229,28 @@ class engine(object):
     def setTip(self):
         popup = tipPopup(self.ui)
         if popup.exec() == QDialog.DialogCode.Accepted:
-            geometry,value = popup.on_ok_clicked()
+            geometry = popup.geometry.currentText().lower()
+            value = popup.value.value()
             
             for obj in self.model.haystack:
-                obj.curve.tip['geometry']=geometry
+                obj.curve.tip['geometry'] = geometry
                 par = 1
-                if geometry=='sphere' or geometry=='cylinder':
-                    obj.curve.tip['parameter']='Radius'
-                    obj.curve.tip['unit']='m'
+                if geometry == 'sphere' or geometry == 'cylinder':
+                    obj.curve.tip['parameter'] = 'Radius'
+                    obj.curve.tip['unit'] = 'm'
                     par = 1e-6
                 else:
-                    obj.curve.tip['parameter']='Angle'
-                    obj.curve.tip['unit']='deg'
-                obj.curve.tip['value']=value*par
-                #massimo
-                
-                #obj.parent().child(obj.row(),2).setText(geometry)
-                #obj.parent().child(obj.row(),3).setText(f"{obj.curve.tip['parameter']}: {str(value)} {obj.curve.tip['unit']}")            
+                    obj.curve.tip['parameter'] = 'Angle'
+                    obj.curve.tip['unit'] = 'deg'
+                obj.curve.tip['value'] = value * par
+                # Update tree view columns (col 2 = geometry, col 3 = parameter/value/unit)
+                idx = self.model.indexFromItem(obj)
+                tip_item = self.model.itemFromIndex(idx.sibling(idx.row(), 2))
+                size_item = self.model.itemFromIndex(idx.sibling(idx.row(), 3))
+                if tip_item:
+                    tip_item.setText(geometry)
+                if size_item:
+                    size_item.setText(f"{obj.curve.tip['parameter']}: {obj.curve.tip['value']} {obj.curve.tip['unit']}")            
     
     def getRow(self,rowindex):
         return self.model.itemFromIndex(self.model.index(rowindex,0))

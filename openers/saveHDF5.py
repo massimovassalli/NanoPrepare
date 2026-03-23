@@ -41,9 +41,9 @@ class saveHDF5(object):
                 for idname,name in zip(named,names):
                     dt = segment.data[:,idname]
                     if idname == curve.idForce and curve.isDeflection is True:
-                        dt *= curve.parameters['k']
+                        dt = dt * curve.parameters['k']
                     dataseg.create_dataset(name,data=dt)                
                 for j in range(len(curve.channels)):
                     if j not in named:
-                        dataseg.create_dataset(curve.channels[j],data=curve.data[:,j])                                        
+                        dataseg.create_dataset(curve.channels[j],data=segment.data[:,j])                                        
         hd.close()
