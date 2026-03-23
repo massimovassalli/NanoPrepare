@@ -35,7 +35,7 @@ def read_curve_segment(subgroup, index):
     istart = np.sum(block_sizes[:index])
     iend = istart + block_sizes[index]
 
-    coeZ = (Zattr['signal_calibration_max'] - Zattr['signal_calibration_min']) / (Zattr['signal_minmax'][1] - Zattr['signal_minmax'][0])
+    coeZ = -(Zattr['signal_calibration_max'] - Zattr['signal_calibration_min']) / (Zattr['signal_minmax'][1] - Zattr['signal_minmax'][0])
     coeDV = (Dattr['signal_calibration_max'] - Dattr['signal_calibration_min']) / (Dattr['signal_minmax'][1] - Dattr['signal_minmax'][0])
     invols = subgroup.parent.attrs['spm_probe_calibration_deflection_sensitivity']
     coeD = coeDV * invols
