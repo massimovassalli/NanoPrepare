@@ -44,7 +44,7 @@ def open(filename,limit = False):
         k = gen_att['spm_probe_calibration_spring_constant']
         invols = gen_att['spm_probe_calibration_deflection_sensitivity'] 
         coeD = coeDV*invols
-        channels = ['Time','Z Position [m]','Deflection [m]']
+        channels = ['Time','Z Position [m]','Force [N]']
         curves = []
         coordinates = []
         
@@ -59,7 +59,7 @@ def open(filename,limit = False):
             istart = np.sum(block_sizes[:number])
             iend = istart+block_sizes[number]
             coordinates.append((xdata[number],ydata[number]))
-            datai = np.transpose(np.vstack([dset[istart:iend] for dset in [T,Z*coeZ,D*coeD]]))
+            datai = np.transpose(np.vstack([dset[istart:iend] for dset in [T,Z*coeZ,D*coeD*k]]))
             curves.append(datai)
             # Update the progress dialog
             progress_dialog.setValue(number + 1)
@@ -86,7 +86,7 @@ def save(filename,curves,coordinates,k,radius,limit=False):
         cv.attrs['filename']=str(filename)
         cv.attrs['spring_constant']=k
         cv.attrs['x-position']=coordinates[i][0]
-        cv.attrs['y-position']=coordinates[i][0]
+        cv.attrs['y-position']=coordinates[i][1]
         cv.attrs['segments']=1
         cv.attrs['selectedSegment']=0
         tip = cv.create_group('tip')

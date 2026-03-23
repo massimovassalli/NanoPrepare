@@ -60,9 +60,9 @@ class opener(skeleton.prepare_opener):
             self.curve.parameters['y'] = ydata[index]            
             coeD = coeDV*invols
         
-        data = np.transpose(np.vstack([dset[istart:iend] for dset in [T,Z*coeZ,D*coeD]]))
+        data = np.transpose(np.vstack([dset[istart:iend] for dset in [T,Z*coeZ,D*coeD*k]]))
         
-        self.curve.channels = ['Time','Z Position [m]','Deflection [m]']
+        self.curve.channels = ['Time','Z Position [m]','Force [N]']
         self.curve.idTime = 0
         self.curve.idForce = 2
         self.curve.idZ = 1
